@@ -6,6 +6,9 @@ Docker image bundling dev tooling for coding agents, on **Debian stable**:
   environment (`orca serve`), which spawns the agent CLIs in git worktrees.
 - **[opencode](https://opencode.ai)** CLI.
 - `git`, **GitHub CLI** (`gh`), **GitLab CLI** (`glab`).
+- **Node.js 22 LTS** + `npm`, and **bun** — JS runtimes and package managers.
+- `tmux`, `ripgrep` (`rg`), `fd-find`, `openssh-client` (git over SSH), `tzdata`,
+  `jq`, `curl`, `unzip`/`zip`, `less`, `procps`.
 
 Everything is baked at build time and pinned as `ARG`s in the `Dockerfile`
 (`GH_VERSION`, `GLAB_VERSION`, `OPENCODE_VERSION`, `ORCA_VERSION`). Nothing is

@@ -18,13 +18,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     LIBGL_ALWAYS_SOFTWARE=1 \
-    PATH=/root/.opencode/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PATH=/root/.opencode/bin:/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Electron + Xvfb runtime for Orca, plus git tooling.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
       ca-certificates curl file jq tar xvfb git \
+      tmux ripgrep fd-find openssh-client tzdata unzip zip less procps \
       libgtk-3-0t64 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libgbm1 libasound2t64 \
       libxtst6 libcups2t64 libdrm2 libxkbcommon0 libpango-1.0-0 libcairo2 libatspi2.0-0t64 \
       libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libxrender1 libx11-xcb1 \
@@ -42,6 +43,20 @@ RUN set -eux; \
     tar -xzf /tmp/glab.tar.gz -C /tmp bin/glab; \
     install -m 0755 /tmp/bin/glab /usr/local/bin/glab; \
     rm -rf /tmp/gh.tar.gz /tmp/glab.tar.gz "/tmp/gh_${GH_VERSION}_linux_amd64" /tmp/bin
+
+# Node.js LTS (many agent tools depend on it).
+RUN set -eux; \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -; \
+    apt-get install -y --no-install-recommends nodejs; \
+    rm -rf /var/lib/apt/lists/*; \
+    node --version; \
+    npm --version
+
+# bun (fast JS runtime / package manager). The installer lands in /root/.bun/bin,
+# which is on PATH above.
+RUN set -eux; \
+    curl -fsSL https://bun.sh/install | bash; \
+    /root/.bun/bin/bun --version
 
 # opencode CLI. The official installer lands in /root/.opencode/bin, which is on
 # PATH above and is one of the install dirs Orca scans for agents.
