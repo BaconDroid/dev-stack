@@ -30,6 +30,7 @@ RUN set -eux; \
       libxtst6 libcups2t64 libdrm2 libxkbcommon0 libpango-1.0-0 libcairo2 libatspi2.0-0t64 \
       libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libxrender1 libx11-xcb1 \
       libxcb-dri3-0 libxss1; \
+    ln -sf /usr/bin/fdfind /usr/local/bin/fd; \
     rm -rf /var/lib/apt/lists/*
 
 # GitHub CLI + GitLab CLI from pinned release tarballs.
