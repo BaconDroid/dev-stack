@@ -21,6 +21,11 @@ if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
     gh auth setup-git 2>/dev/null || true
 fi
 
+# Optional headless opencode server, for direct TUI/web attach on its own port.
+if [ -n "${OPENCODE_SERVE_PORT:-}" ]; then
+    opencode serve --port "${OPENCODE_SERVE_PORT}" --hostname 0.0.0.0 >/var/log/opencode-serve.log 2>&1 &
+fi
+
 # Build the `serve` argv.
 set -- serve --port "${ORCA_PORT:-6768}"
 if [ -n "${ORCA_PAIRING_ADDRESS:-}" ]; then

@@ -46,6 +46,11 @@ docker run -d --name dev-stack --init \
   docker logs dev-stack | grep -i pairing
   ```
 
+## opencode server (optional)
+
+Set `OPENCODE_SERVE_PORT` (e.g. `4096`) and publish `-p 4096:4096` to also run a
+headless `opencode serve` alongside Orca, for direct TUI/web attach.
+
 ## Pairing
 
 The pairing URL (`orca://pair?code=...`) is a **capability — treat it like a

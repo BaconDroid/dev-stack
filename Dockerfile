@@ -79,6 +79,6 @@ RUN set -eux; \
 COPY entrypoint.sh /usr/local/bin/dev-stack-entrypoint
 RUN chmod 0755 /usr/local/bin/dev-stack-entrypoint
 
-# orca serve (WebSocket). Clients pair via the LAN/Tailscale address.
-EXPOSE 6768
+# orca serve (WebSocket 6768) and the optional headless opencode server (4096).
+EXPOSE 6768 4096
 ENTRYPOINT ["/usr/local/bin/dev-stack-entrypoint"]
