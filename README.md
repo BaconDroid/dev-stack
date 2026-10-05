@@ -49,7 +49,9 @@ docker run -d --name dev-stack --init \
 ## opencode server (optional)
 
 Set `OPENCODE_SERVE_PORT` (e.g. `4096`) and publish `-p 4096:4096` to also run a
-headless `opencode serve` alongside Orca, for direct TUI/web attach.
+headless `opencode serve` alongside Orca, for direct TUI/web attach. Set
+`OPENCODE_SERVER_PASSWORD` to require auth - otherwise the server logs
+`server is unsecured` and is open to anyone who can reach the port.
 
 ## Pairing
 
