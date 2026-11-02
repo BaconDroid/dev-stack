@@ -11,7 +11,7 @@ FROM debian:13-slim
 # Pinned upstream versions. Bump these to upgrade.
 ARG GH_VERSION=2.102.0
 ARG GLAB_VERSION=1.120.0
-ARG OPENCODE_VERSION=1.18.34
+ARG OPENCODE_VERSION=2.0.30
 ARG ORCA_VERSION=v1.4.218
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -51,7 +51,8 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends nodejs; \
     rm -rf /var/lib/apt/lists/*; \
     node --version; \
-    npm --version
+    npm --version; \
+    npm install -g typescript typescript-language-server @biomejs/biome prettier
 
 # bun (fast JS runtime / package manager). The installer lands in /root/.bun/bin,
 # which is on PATH above.
