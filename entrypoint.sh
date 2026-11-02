@@ -8,12 +8,10 @@ export LC_ALL=C.UTF-8
 export PATH="/root/.opencode/bin:${PATH}"
 
 # Git identity for commits made by the agents.
-if [ -n "${GIT_USER_NAME:-}" ]; then
-    git config --global user.name "${GIT_USER_NAME}"
-fi
-if [ -n "${GIT_USER_EMAIL:-}" ]; then
-    git config --global user.email "${GIT_USER_EMAIL}"
-fi
+GIT_USER_NAME="${GIT_USER_NAME:-BaconDroid}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-11067111+BaconDroid@users.noreply.github.com}"
+git config --global user.name "${GIT_USER_NAME}"
+git config --global user.email "${GIT_USER_EMAIL}"
 
 # Seed gh from the token and install git's credential helper (HTTPS clones).
 if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
