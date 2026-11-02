@@ -63,7 +63,7 @@ RUN set -eux; \
 # opencode CLI. The official installer lands in /root/.opencode/bin, which is on
 # PATH above and is one of the install dirs Orca scans for agents.
 RUN set -eux; \
-    curl -fsSL https://opencode.ai/install | bash -s -- --version "${OPENCODE_VERSION}"; \
+    curl -fsSL https://opencode.ai/v2/install | bash -s -- --version "${OPENCODE_VERSION}"; \
     opencode --version
 
 # Orca runtime: extract the AppImage so no FUSE device is needed in Docker.
