@@ -7,6 +7,14 @@ export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 export PATH="/root/.opencode/bin:${PATH}"
 
+# A stale OPENCODE_CONFIG (file deleted, or a template pointing at a path that
+# never existed) makes every agent run fail on config load. Drop it with a
+# warning instead of starting in a broken state; the base config still applies.
+if [ -n "${OPENCODE_CONFIG:-}" ] && [ ! -r "${OPENCODE_CONFIG}" ]; then
+    echo "dev-stack: OPENCODE_CONFIG=${OPENCODE_CONFIG} is not readable, ignoring it" >&2
+    unset OPENCODE_CONFIG
+fi
+
 # Git identity for commits made by the agents.
 GIT_USER_NAME="${GIT_USER_NAME:-BaconDroid}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-11067111+BaconDroid@users.noreply.github.com}"

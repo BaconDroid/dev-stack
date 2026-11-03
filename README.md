@@ -53,6 +53,23 @@ headless `opencode serve` alongside Orca, for direct TUI/web attach. Set
 `OPENCODE_SERVER_PASSWORD` to require auth - otherwise the server logs
 `server is unsecured` and is open to anyone who can reach the port.
 
+## Remote terminals
+
+`bash -l` (what an interactive remote terminal usually spawns) does not inherit
+the image's `PATH`: Debian's `/etc/profile` rewrites it. `/etc/profile.d/10-dev-stack-path.sh`
+puts `/root/.opencode/bin` and `/root/.bun/bin` back, so `opencode` works in
+login shells. If you hit `command not found`, either shell is not reading the
+profile or you are on an image older than that file — then use the absolute
+path:
+
+```sh
+cd /workspace/<project> && /root/.opencode/bin/opencode
+```
+
+`OPENCODE_CONFIG` is baked into the environment (not the profile), so a custom
+config pointer survives a login shell; if the file it points at is missing the
+entrypoint drops it with a warning instead of failing every agent run.
+
 ## Pairing
 
 The pairing URL (`orca://pair?code=...`) is a **capability — treat it like a

@@ -80,6 +80,14 @@ RUN set -eux; \
     rm -f /opt/orca/orca-linux.AppImage; \
     chmod -R a+rX /opt/orca/squashfs-root
 
+# Login shells: Debian's /etc/profile rewrites PATH from scratch, which drops the
+# install dirs set above, so `opencode` is not found in an interactive `bash -l`
+# (Orca's remote terminals spawn login shells). Restore them for every shell.
+RUN printf '%s\n' \
+      'case ":$PATH:" in *":/root/.opencode/bin:"*) ;; *) PATH="/root/.opencode/bin:/root/.bun/bin:$PATH" ;; esac' \
+      'export PATH' > /etc/profile.d/10-dev-stack-path.sh \
+    && chmod 0644 /etc/profile.d/10-dev-stack-path.sh
+
 COPY entrypoint.sh /usr/local/bin/dev-stack-entrypoint
 RUN chmod 0755 /usr/local/bin/dev-stack-entrypoint
 

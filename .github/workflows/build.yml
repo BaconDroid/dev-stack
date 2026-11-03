@@ -51,3 +51,36 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build for tests
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: dev-stack:ci
+          cache-from: type=gha
+
+      # The regression this guards: /etc/profile rewrites PATH, so a login shell
+      # (what Orca's remote terminals spawn) lost /root/.opencode/bin.
+      - name: opencode resolves in a login shell with a stripped PATH
+        run: docker run --rm -e PATH=/usr/local/bin:/usr/bin:/bin dev-stack:ci bash -lc 'command -v opencode && opencode --version'
+
+      - name: opencode resolves in a non-login shell
+        run: docker run --rm dev-stack:ci sh -c 'opencode --version'
+
+      - name: entrypoint guards a stale OPENCODE_CONFIG
+        run: docker run --rm dev-stack:ci grep -q 'is not readable, ignoring it' /usr/local/bin/dev-stack-entrypoint
+
+      - name: entrypoint clears stale Orca runtime artifacts
+        run: |
+          docker run --rm dev-stack:ci grep -q 'Singleton' /usr/local/bin/dev-stack-entrypoint
+          docker run --rm dev-stack:ci grep -q 'daemon/\*\.sock' /usr/local/bin/dev-stack-entrypoint
+
