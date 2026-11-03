@@ -18,7 +18,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     LIBGL_ALWAYS_SOFTWARE=1 \
-    PATH=/root/.opencode/bin:/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PATH=/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# The opencode installer (below) lands in /root/.opencode/bin; keep it first on PATH.
+ENV PATH="/root/.opencode/bin:${PATH}"
 
 # Electron + Xvfb runtime for Orca, plus git tooling.
 RUN set -eux; \
