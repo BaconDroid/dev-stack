@@ -9,10 +9,16 @@
 FROM debian:13-slim
 
 # Pinned upstream versions. Bump these to upgrade.
+# Bump ORCA_VERSION together with the desktop app: a client and a runtime from
+# different releases are the usual source of "it paired yesterday" reports.
+# https://github.com/stablyai/orca/releases/latest
 ARG GH_VERSION=2.102.0
 ARG GLAB_VERSION=1.120.0
 ARG OPENCODE_VERSION=2.0.30
-ARG ORCA_VERSION=v1.4.218
+ARG ORCA_VERSION=v1.4.247
+
+# Exposed at runtime so a deployed container can be compared with the client.
+ENV ORCA_VERSION=${ORCA_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \

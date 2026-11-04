@@ -70,6 +70,16 @@ cd /workspace/<project> && /root/.opencode/bin/opencode
 config pointer survives a login shell; if the file it points at is missing the
 entrypoint drops it with a warning instead of failing every agent run.
 
+## Version parity
+
+`ORCA_VERSION` in the `Dockerfile` must match the desktop app: client and runtime
+from different releases is the usual cause of "it paired fine yesterday" and of
+odd terminal behaviour. The pinned value is the currently released tag on
+<https://github.com/stablyai/orca/releases/latest>; the image exports it as the
+`ORCA_VERSION` environment variable so a deployed container can be compared with
+a client at any time. `unraid-stack`'s `verify-dev-stack.sh` does that comparison
+and reports drift.
+
 ## Pairing
 
 The pairing URL (`orca://pair?code=...`) is a **capability — treat it like a
