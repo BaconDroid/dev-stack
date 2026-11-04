@@ -72,11 +72,14 @@ jobs:
 
       # The regression this guards: /etc/profile rewrites PATH, so a login shell
       # (what Orca's remote terminals spawn) lost /root/.opencode/bin.
+      # `opencode --version` is deliberately not used here: on a container with no
+      # seeded config it initializes runtime state and can block indefinitely, so
+      # it is not a bounded check. Resolving the binary is what regressed.
       - name: opencode resolves in a login shell with a stripped PATH
-        run: docker run --rm -e PATH=/usr/local/bin:/usr/bin:/bin dev-stack:ci bash -lc 'command -v opencode && opencode --version'
+        run: timeout 60 docker run --rm -e PATH=/usr/local/bin:/usr/bin:/bin dev-stack:ci bash -lc 'command -v opencode'
 
       - name: opencode resolves in a non-login shell
-        run: docker run --rm dev-stack:ci sh -c 'opencode --version'
+        run: timeout 60 docker run --rm dev-stack:ci sh -c 'command -v opencode'
 
       - name: entrypoint guards a stale OPENCODE_CONFIG
         run: docker run --rm dev-stack:ci grep -q 'is not readable, ignoring it' /usr/local/bin/dev-stack-entrypoint
