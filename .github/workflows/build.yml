@@ -76,16 +76,16 @@ jobs:
       # seeded config it initializes runtime state and can block indefinitely, so
       # it is not a bounded check. Resolving the binary is what regressed.
       - name: opencode resolves in a login shell with a stripped PATH
-        run: timeout 60 docker run --rm -e PATH=/usr/local/bin:/usr/bin:/bin dev-stack:ci bash -lc 'command -v opencode'
+        run: timeout 60 docker run --rm --entrypoint bash -e PATH=/usr/local/bin:/usr/bin:/bin dev-stack:ci -lc 'command -v opencode'
 
       - name: opencode resolves in a non-login shell
-        run: timeout 60 docker run --rm dev-stack:ci sh -c 'command -v opencode'
+        run: timeout 60 docker run --rm --entrypoint sh dev-stack:ci -c 'command -v opencode'
 
       - name: entrypoint guards a stale OPENCODE_CONFIG
-        run: docker run --rm dev-stack:ci grep -q 'is not readable, ignoring it' /usr/local/bin/dev-stack-entrypoint
+        run: docker run --rm --entrypoint grep dev-stack:ci -q 'is not readable, ignoring it' /usr/local/bin/dev-stack-entrypoint
 
       - name: entrypoint clears stale Orca runtime artifacts
         run: |
-          docker run --rm dev-stack:ci grep -q 'Singleton' /usr/local/bin/dev-stack-entrypoint
-          docker run --rm dev-stack:ci grep -q 'daemon/\*\.sock' /usr/local/bin/dev-stack-entrypoint
+          docker run --rm --entrypoint grep dev-stack:ci -q 'Singleton' /usr/local/bin/dev-stack-entrypoint
+          docker run --rm --entrypoint grep dev-stack:ci -q 'daemon/\*\.sock' /usr/local/bin/dev-stack-entrypoint
 
