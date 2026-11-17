@@ -89,3 +89,10 @@ jobs:
           docker run --rm --entrypoint grep dev-stack:ci -q 'Singleton' /usr/local/bin/dev-stack-entrypoint
           docker run --rm --entrypoint grep dev-stack:ci -q 'daemon/\*\.sock' /usr/local/bin/dev-stack-entrypoint
 
+      # Declared toolchains must resolve without a login shell or a seeded PATH.
+      - name: language toolchains resolve
+        run: >
+          timeout 60 docker run --rm --entrypoint sh dev-stack:ci -c
+          'command -v cc cargo rustfmt rust-analyzer luacheck busted poetry
+          golangci-lint go git-lfs cmake fish zsh gdb'
+

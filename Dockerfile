@@ -1,4 +1,4 @@
-# dev-stack — dev tooling for coding agents.
+# dev-stack - dev tooling for coding agents.
 #
 # One Debian-stable image that runs the Orca headless runtime (`orca serve`) and
 # ships the agent CLIs it spawns in worktrees: opencode, git, gh, glab.
@@ -16,6 +16,8 @@ ARG GH_VERSION=2.102.0
 ARG GLAB_VERSION=1.120.0
 ARG OPENCODE_VERSION=2.0.30
 ARG ORCA_VERSION=v1.4.247
+ARG RUST_VERSION=1.100.0
+ARG GOLANGCI_LINT_VERSION=2.15.0
 
 # Exposed at runtime so a deployed container can be compared with the client.
 ENV ORCA_VERSION=${ORCA_VERSION}
@@ -42,6 +44,53 @@ RUN set -eux; \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd; \
     rm -rf /var/lib/apt/lists/*
 
+# Language toolchains. C is mandatory for cargo (its default linker is `cc`);
+# pkg-config + fontconfig/freetype headers mirror rakuyomi's CI so `cargo check`
+# also passes on native -sys crates. Lua mirrors rakuyomi's luacheck CI recipe
+# (lua5.1 + luarocks) and runs the KOReader plugin specs under LuaJIT (the
+# specs use `goto`, which Lua 5.1 cannot parse - hence busted is re-pointed).
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      build-essential pkg-config libfontconfig1-dev libfreetype6-dev \
+      python3 python3-venv python3-pip python3-poetry \
+      luajit lua5.1 luarocks; \
+    luarocks install luacheck; \
+    luarocks install busted; \
+    sed -i 's|/usr/bin/lua5.1|/usr/bin/luajit|' /usr/local/bin/busted; \
+    grep -q '/usr/bin/luajit' /usr/local/bin/busted; \
+    rm -rf /var/lib/apt/lists/*; \
+    cc --version; \
+    poetry --version; \
+    luacheck --version; \
+    luajit -v; \
+    busted --version
+
+# Remaining declared tools: git-lfs, Go, cmake, fish, zsh, gdb.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      git-lfs golang-go cmake fish zsh gdb; \
+    rm -rf /var/lib/apt/lists/*; \
+    git lfs version; \
+    go version; \
+    cmake --version; \
+    fish --version; \
+    zsh --version; \
+    gdb --version
+
+# Rust via rustup, pinned. Baked into the image (not a volume): a container
+# recreate must keep cargo/rustc/rustfmt/clippy/rust-analyzer on PATH.
+RUN set -eux; \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+      | sh -s -- -y \
+        --default-toolchain "${RUST_VERSION}" \
+        --profile minimal \
+        -c rustfmt -c clippy -c rust-analyzer; \
+    /root/.cargo/bin/rustc --version; \
+    /root/.cargo/bin/cargo --version
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 # GitHub CLI + GitLab CLI from pinned release tarballs.
 RUN set -eux; \
     curl -fsSL -o /tmp/gh.tar.gz \
@@ -53,6 +102,15 @@ RUN set -eux; \
     tar -xzf /tmp/glab.tar.gz -C /tmp bin/glab; \
     install -m 0755 /tmp/bin/glab /usr/local/bin/glab; \
     rm -rf /tmp/gh.tar.gz /tmp/glab.tar.gz "/tmp/gh_${GH_VERSION}_linux_amd64" /tmp/bin
+
+# golangci-lint from the pinned GitHub release (not packaged in Debian).
+RUN set -eux; \
+    curl -fsSL -o /tmp/golangci.tar.gz \
+      "https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz"; \
+    tar -xzf /tmp/golangci.tar.gz -C /tmp; \
+    install -m 0755 "/tmp/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint" /usr/local/bin/golangci-lint; \
+    rm -rf /tmp/golangci.tar.gz "/tmp/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64"; \
+    golangci-lint --version
 
 # Node.js LTS (many agent tools depend on it).
 RUN set -eux; \
@@ -90,7 +148,7 @@ RUN set -eux; \
 # install dirs set above, so `opencode` is not found in an interactive `bash -l`
 # (Orca's remote terminals spawn login shells). Restore them for every shell.
 RUN printf '%s\n' \
-      'case ":$PATH:" in *":/root/.opencode/bin:"*) ;; *) PATH="/root/.opencode/bin:/root/.bun/bin:$PATH" ;; esac' \
+      'case ":$PATH:" in *":/root/.opencode/bin:"*) ;; *) PATH="/root/.opencode/bin:/root/.bun/bin:/root/.cargo/bin:$PATH" ;; esac' \
       'export PATH' > /etc/profile.d/10-dev-stack-path.sh \
     && chmod 0644 /etc/profile.d/10-dev-stack-path.sh
 

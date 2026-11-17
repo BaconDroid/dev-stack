@@ -2,17 +2,24 @@
 
 Docker image bundling dev tooling for coding agents, on **Debian stable**:
 
-- **[Orca](https://github.com/stablyai/orca)** — headless agent development
+- **[Orca](https://github.com/stablyai/orca)** - headless agent development
   environment (`orca serve`), which spawns the agent CLIs in git worktrees.
 - **[opencode](https://opencode.ai)** CLI.
-- `git`, **GitHub CLI** (`gh`), **GitLab CLI** (`glab`).
-- **Node.js 22 LTS** + `npm`, and **bun** — JS runtimes and package managers.
+- `git`, `git-lfs`, **GitHub CLI** (`gh`), **GitLab CLI** (`glab`).
+- **Node.js 22 LTS** + `npm`, and **bun** - JS runtimes and package managers.
+- **Language toolchains:** C (`gcc`/`make`/`pkg-config`, so `cargo check` /
+  `cargo test` / `clippy` can link), Rust via rustup (pinned `RUST_VERSION`:
+  `cargo`, `rustc`, `rustfmt`, `clippy`, `rust-analyzer`), Go + `golangci-lint`
+  (pinned `GOLANGCI_LINT_VERSION`), Python 3 (`pip`, `venv`, `poetry`), Lua
+  (`luajit`, `luacheck` installed exactly as rakuyomi's CI does, and `busted`
+  running the plugin specs under LuaJIT).
+- `cmake`, `gdb`, `fish`, `zsh`.
 - `tmux`, `ripgrep` (`rg`), `fd-find`, `openssh-client` (git over SSH), `tzdata`,
   `jq`, `curl`, `unzip`/`zip`, `less`, `procps`.
 
 Everything is baked at build time and pinned as `ARG`s in the `Dockerfile`
-(`GH_VERSION`, `GLAB_VERSION`, `OPENCODE_VERSION`, `ORCA_VERSION`). Nothing is
-installed at runtime.
+(`GH_VERSION`, `GLAB_VERSION`, `OPENCODE_VERSION`, `ORCA_VERSION`,
+`RUST_VERSION`, `GOLANGCI_LINT_VERSION`). Nothing is installed at runtime.
 
 ## Image
 
@@ -57,10 +64,10 @@ headless `opencode serve` alongside Orca, for direct TUI/web attach. Set
 
 `bash -l` (what an interactive remote terminal usually spawns) does not inherit
 the image's `PATH`: Debian's `/etc/profile` rewrites it. `/etc/profile.d/10-dev-stack-path.sh`
-puts `/root/.opencode/bin` and `/root/.bun/bin` back, so `opencode` works in
-login shells. If you hit `command not found`, either shell is not reading the
-profile or you are on an image older than that file — then use the absolute
-path:
+puts `/root/.opencode/bin`, `/root/.bun/bin` and `/root/.cargo/bin` back, so
+`opencode` and `cargo` work in login shells. If you hit `command not found`,
+either shell is not reading the profile or you are on an image older than that
+file - then use the absolute path:
 
 ```sh
 cd /workspace/<project> && /root/.opencode/bin/opencode
