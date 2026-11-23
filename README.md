@@ -38,6 +38,8 @@ docker run -d --name dev-stack --init \
   -e ORCA_PAIRING_ADDRESS=<LAN-or-Tailscale-IP> \
   -e GIT_USER_NAME=you -e GIT_USER_EMAIL=you@example.com \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=... \
+  -e GITLAB_TOKEN=... \
+  -e OPEN_DESIGN_API_KEY=... \
   -v devstack-orca:/root/.config/orca \
   -v devstack-orca-upper:/root/.config/Orca \
   -v devstack-opencode:/root/.config/opencode \
@@ -52,6 +54,23 @@ docker run -d --name dev-stack --init \
   ```sh
   docker logs dev-stack | grep -i pairing
   ```
+
+## GitLab token (optional)
+
+Set `GITLAB_TOKEN` and the entrypoint logs `glab` in and adds a git credential
+helper for HTTPS clones. The host defaults to `gitlab.com`; set `GITLAB_HOST`
+for a self-managed instance. The token is stored in plaintext in glab's config
+because the container has no keyring; the git helper reads it from the
+environment and never writes it to `.gitconfig`.
+
+## open-design API key (optional)
+
+Set `OPEN_DESIGN_API_KEY` (key for <https://go.open-design.ai/>) and the
+entrypoint stores it in opencode's `auth.json` under the provider id
+`open-design`, keeping any other stored credentials. The provider itself
+(`baseURL`, models) must still be declared in the opencode config under
+`/root/.config/opencode`. `auth.json` lives in `~/.local/share/opencode`, which
+is not a volume in the example above, so the key is re-seeded on every start.
 
 ## opencode server (optional)
 
