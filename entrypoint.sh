@@ -15,6 +15,42 @@ if [ -n "${OPENCODE_CONFIG:-}" ] && [ ! -r "${OPENCODE_CONFIG}" ]; then
     unset OPENCODE_CONFIG
 fi
 
+# Seed a provider key into opencode's credential store under its provider id.
+# One atomic write per call, merged with jq so keys for other providers are kept.
+# The secret is read from jq's own environment, never interpolated into a command
+# line, and the file is left mode 600.
+seed_provider_key() {
+    provider_id="$1"
+    env_name="$2"
+    auth_file="${XDG_DATA_HOME:-/root/.local/share}/opencode/auth.json"
+    mkdir -p "$(dirname "${auth_file}")"
+    [ -s "${auth_file}" ] || echo '{}' > "${auth_file}"
+    if jq --arg id "${provider_id}" --arg var "${env_name}" \
+        '.[$id] = {type: "api", key: env[$var]}' "${auth_file}" > "${auth_file}.tmp"; then
+        chmod 600 "${auth_file}.tmp"
+        mv "${auth_file}.tmp" "${auth_file}"
+    else
+        rm -f "${auth_file}.tmp"
+        echo "dev-stack: could not seed ${env_name} into ${auth_file}" >&2
+    fi
+}
+# open-design (https://go.open-design.ai/), one provider id.
+if [ -n "${OPEN_DESIGN_API_KEY:-}" ]; then
+    seed_provider_key open-design OPEN_DESIGN_API_KEY
+fi
+# AIReiter (https://aireiter.com/coding-plan): one plan, one key, two provider
+# ids - the OpenAI-compatible endpoint and the Anthropic Messages one - so both
+# legs are seeded from the same variable.
+if [ -n "${AIREITER_API_KEY:-}" ]; then
+    seed_provider_key aireiter AIREITER_API_KEY
+    seed_provider_key aireiter-anthropic AIREITER_API_KEY
+fi
+
+# `sh entrypoint.sh --seed-only` runs the credential seeding and stops: it exists
+# so the seeding above can be exercised without starting the runtime.
+if [ "${1:-}" = "--seed-only" ]; then
+    exit 0
+fi
 # Git identity for commits made by the agents.
 GIT_USER_NAME="${GIT_USER_NAME:-BaconDroid}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-11067111+BaconDroid@users.noreply.github.com}"
@@ -39,23 +75,6 @@ if [ -n "${GITLAB_TOKEN:-}" ]; then
         || echo "dev-stack: glab auth login failed for ${gitlab_host}" >&2
     git config --global "credential.https://${gitlab_host}.helper" \
         '!f() { test "$1" = get && printf "username=oauth2\npassword=%s\n" "$GITLAB_TOKEN"; }; f'
-fi
-
-# Seed the open-design (https://go.open-design.ai/) API key into opencode's
-# credential store under the `open-design` provider id. Merged with jq so keys
-# for other providers are kept; the key is read from the environment, never put
-# on a command line.
-if [ -n "${OPEN_DESIGN_API_KEY:-}" ]; then
-    auth_file="${XDG_DATA_HOME:-/root/.local/share}/opencode/auth.json"
-    mkdir -p "$(dirname "${auth_file}")"
-    [ -s "${auth_file}" ] || echo '{}' > "${auth_file}"
-    if jq '.["open-design"] = {type: "api", key: env.OPEN_DESIGN_API_KEY}' "${auth_file}" > "${auth_file}.tmp"; then
-        chmod 600 "${auth_file}.tmp"
-        mv "${auth_file}.tmp" "${auth_file}"
-    else
-        rm -f "${auth_file}.tmp"
-        echo "dev-stack: could not write OPEN_DESIGN_API_KEY to ${auth_file}" >&2
-    fi
 fi
 
 # Optional headless opencode server, for direct TUI/web attach on its own port.

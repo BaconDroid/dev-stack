@@ -72,6 +72,26 @@ entrypoint stores it in opencode's `auth.json` under the provider id
 `/root/.config/opencode`. `auth.json` lives in `~/.local/share/opencode`, which
 is not a volume in the example above, so the key is re-seeded on every start.
 
+## AIReiter API key (optional)
+
+Set `AIREITER_API_KEY` (key for the Coding Plan, <https://aireiter.com/coding-plan>)
+and the entrypoint stores it in opencode's `auth.json` under **both** provider ids of
+that plan - `aireiter` (OpenAI-compatible) and `aireiter-anthropic` (Anthropic
+Messages) - because one plan and one key serve the two endpoints. Any other stored
+credential is kept, and the file is left mode 600.
+
+The provider itself (`baseURL`, models) must still be declared in the opencode config
+under `/root/.config/opencode`, where it reads the key as `{env:AIREITER_API_KEY}`. Both
+paths therefore see the same value, and the seeding re-reads the environment at every
+start, so a rotated key never leaves a stale entry behind.
+
+Credential seeding runs before anything else and can be exercised on its own, without
+starting the runtime:
+
+```sh
+sh entrypoint.sh --seed-only
+```
+
 ## opencode server (optional)
 
 Set `OPENCODE_SERVE_PORT` (e.g. `4096`) and publish `-p 4096:4096` to also run a
