@@ -46,6 +46,17 @@ if [ -n "${AIREITER_API_KEY:-}" ]; then
     seed_provider_key aireiter-anthropic AIREITER_API_KEY
 fi
 
+# OpenCode Go and Command Code GOAT already authenticate through opencode's
+# built-in provider definitions, which read OPENCODE_API_KEY and CMD_API_KEY from
+# the environment. They are seeded as well so all four subscriptions live in the
+# same store, and so a config override that drops the built-in convention still
+# finds the key.
+if [ -n "${OPENCODE_API_KEY:-}" ]; then
+    seed_provider_key opencode-go OPENCODE_API_KEY
+fi
+if [ -n "${CMD_API_KEY:-}" ]; then
+    seed_provider_key commandcode CMD_API_KEY
+fi
 # `sh entrypoint.sh --seed-only` runs the credential seeding and stops: it exists
 # so the seeding above can be exercised without starting the runtime.
 if [ "${1:-}" = "--seed-only" ]; then

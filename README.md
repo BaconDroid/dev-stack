@@ -92,6 +92,21 @@ starting the runtime:
 sh entrypoint.sh --seed-only
 ```
 
+## OpenCode Go and Command Code keys (optional)
+
+`OPENCODE_API_KEY` (OpenCode Zen + Go) and `CMD_API_KEY` (Command Code GOAT) already
+work without the entrypoint: both providers are built into opencode, which reads those
+two variables from the environment. The entrypoint **also** stores them in
+`auth.json` under the `opencode-go` and `commandcode` provider ids, so all four
+subscriptions live in one store and a config override that drops the built-in
+convention still finds the key. Nothing else changes: a missing variable seeds nothing.
+
+All four subscriptions therefore appear in one place:
+
+```sh
+docker exec dev-stack sh -c 'jq -r "keys[]" ~/.local/share/opencode/auth.json'
+```
+
 ## opencode server (optional)
 
 Set `OPENCODE_SERVE_PORT` (e.g. `4096`) and publish `-p 4096:4096` to also run a
