@@ -142,9 +142,20 @@ docker exec dev-stack sh -c 'jq -r "keys[]" ~/.local/share/opencode/auth.json'
 ## opencode server (optional)
 
 Set `OPENCODE_SERVE_PORT` (e.g. `4096`) and publish `-p 4096:4096` to also run a
-headless `opencode serve` alongside Orca, for direct TUI/web attach. Set
-`OPENCODE_SERVER_PASSWORD` to require auth - otherwise the server logs
-`server is unsecured` and is open to anyone who can reach the port.
+headless `opencode serve` alongside Orca, for direct TUI/web attach.
+
+Authentication is never optional: `/api`, `/openapi.json` and `/auth/` all answer
+`401` to a request with no credentials (verified on 2.4.2). Set
+`OPENCODE_SERVER_PASSWORD` to choose the password; with it unset the server
+generates one at start and prints `server password <value>` to its log, so the
+value still exists and the port is still not open.
+
+Two things to know about the 2.x log output: the `server is unsecured` warning
+this section used to cite is no longer emitted, so its absence proves nothing -
+the `401` is the check that matters. And the accepted scheme is not pinned down
+here: Basic (`-u ':<pw>'`), `Authorization: Bearer` and a JSON POST to `/auth/`
+all returned 401 with the generated value. Treat `401` as "locked" and do not
+document a login flow until one is verified end to end.
 
 ## Remote terminals
 
