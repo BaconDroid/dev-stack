@@ -7,6 +7,8 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +24,17 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v4
+
+      - name: Resolve tool versions
+        id: versions
+        run: |
+          versions=$(sh ./versions.sh)
+          printf '%s\n' "$versions"
+          {
+            echo 'args<<EOF'
+            printf '%s\n' "$versions"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -40,17 +53,20 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=short
+            type=sha,format=short,enable=${{ github.event_name != 'schedule' }}
             type=raw,value=latest,enable={{is_default_branch}}
+            type=schedule,pattern=nightly-{{date 'YYYYMMDD'}}
 
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
+          pull: true
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.versions.outputs.args }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -61,6 +77,18 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
+      - name: Resolve tool versions
+        id: versions
+        run: |
+          versions=$(sh ./versions.sh)
+          printf '%s\n' "$versions"
+          printf '%s\n' "$versions" > "$RUNNER_TEMP/versions.env"
+          {
+            echo 'args<<EOF'
+            printf '%s\n' "$versions"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build for tests
         uses: docker/build-push-action@v7
         with:
@@ -68,6 +96,7 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: dev-stack:ci
+          build-args: ${{ steps.versions.outputs.args }}
           cache-from: type=gha
 
       # The regression this guards: /etc/profile rewrites PATH, so a login shell
@@ -95,4 +124,15 @@ jobs:
           timeout 60 docker run --rm --entrypoint sh dev-stack:ci -c
           'command -v cc cargo rustfmt rust-analyzer luacheck busted poetry
           golangci-lint go git-lfs cmake fish zsh gdb'
+
+      # Guards the build-arg plumbing: an arg that resolves but never reaches the
+      # image would leave the smoke job green while baking an older tool.
+      - name: image carries the resolved versions
+        run: |
+          for v in OPENCODE_VERSION ORCA_VERSION; do
+            want=$(sed -n "s/^$v=//p" "$RUNNER_TEMP/versions.env")
+            got=$(docker run --rm --entrypoint printenv dev-stack:ci "$v")
+            echo "$v: resolved=$want image=$got"
+            [ -n "$want" ] && [ "$got" = "$want" ] || exit 1
+          done
 

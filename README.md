@@ -8,27 +8,40 @@ Docker image bundling dev tooling for coding agents, on **Debian stable**:
 - `git`, `git-lfs`, **GitHub CLI** (`gh`), **GitLab CLI** (`glab`).
 - **Node.js 22 LTS** + `npm`, and **bun** - JS runtimes and package managers.
 - **Language toolchains:** C (`gcc`/`make`/`pkg-config`, so `cargo check` /
-  `cargo test` / `clippy` can link), Rust via rustup (pinned `RUST_VERSION`:
-  `cargo`, `rustc`, `rustfmt`, `clippy`, `rust-analyzer`), Go + `golangci-lint`
-  (pinned `GOLANGCI_LINT_VERSION`), Python 3 (`pip`, `venv`, `poetry`), Lua
+  `cargo test` / `clippy` can link), Rust via rustup (latest stable `RUST_VERSION`:
+  `cargo`, `rustc`, `rustfmt`, `clippy`, `rust-analyzer`), Go + `golangci-lint`,
+  Python 3 (`pip`, `venv`, `poetry`), Lua
   (`luajit`, `luacheck` installed exactly as rakuyomi's CI does, and `busted`
   running the plugin specs under LuaJIT).
 - `cmake`, `gdb`, `fish`, `zsh`.
 - `tmux`, `ripgrep` (`rg`), `fd-find`, `openssh-client` (git over SSH), `tzdata`,
   `jq`, `curl`, `unzip`/`zip`, `less`, `procps`.
 
-Everything is baked at build time and pinned as `ARG`s in the `Dockerfile`
-(`GH_VERSION`, `GLAB_VERSION`, `OPENCODE_VERSION`, `ORCA_VERSION`,
-`RUST_VERSION`, `GOLANGCI_LINT_VERSION`). Nothing is installed at runtime.
+Everything is baked at build time. The `Dockerfile` pins no versions: `versions.sh`
+resolves the latest upstream release of each tool (`gh`, `glab`, opencode, Orca,
+Rust stable, golangci-lint) and `build.sh` / CI pass them in as build args. Nothing
+is installed at runtime.
 
 ## Image
 
-Published to GHCR by GitHub Actions on every push to `main` and every `v*` tag:
+Published to GHCR by GitHub Actions on every push to `main`, every `v*` tag, and
+once a day (04:17 UTC), so a nightly build picks up new upstream releases even
+when nothing changes here:
 
 ```
 ghcr.io/bacondroid/dev-stack:latest
 ghcr.io/bacondroid/dev-stack:sha-<short>
 ```
+
+To pin one tool for a single build, export `PIN_` plus its name:
+
+```sh
+./build.sh                          # every tool at its latest release
+PIN_ORCA_VERSION=v1.4.278 ./build.sh
+```
+
+The variables are `PIN_GH_VERSION`, `PIN_GLAB_VERSION`, `PIN_OPENCODE_VERSION`,
+`PIN_ORCA_VERSION`, `PIN_RUST_VERSION`, `PIN_GOLANGCI_LINT_VERSION`.
 
 ## Run
 
@@ -152,13 +165,13 @@ entrypoint drops it with a warning instead of failing every agent run.
 
 ## Version parity
 
-`ORCA_VERSION` in the `Dockerfile` must match the desktop app: client and runtime
-from different releases is the usual cause of "it paired fine yesterday" and of
-odd terminal behaviour. The pinned value is the currently released tag on
-<https://github.com/stablyai/orca/releases/latest>; the image exports it as the
-`ORCA_VERSION` environment variable so a deployed container can be compared with
-a client at any time. `unraid-stack`'s `verify-dev-stack.sh` does that comparison
-and reports drift.
+`ORCA_VERSION` must match the desktop app: client and runtime from different
+releases is the usual cause of "it paired fine yesterday" and of odd terminal
+behaviour. Every rebuild resolves the currently released tag from
+<https://github.com/stablyai/orca/releases/latest> (`versions.sh`), and the image
+exports it as the `ORCA_VERSION` environment variable so a deployed container can
+be compared with a client at any time. `unraid-stack`'s `verify-dev-stack.sh` does
+that comparison and reports drift.
 
 ## Pairing
 

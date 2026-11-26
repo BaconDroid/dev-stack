@@ -2,25 +2,22 @@
 #
 # One Debian-stable image that runs the Orca headless runtime (`orca serve`) and
 # ships the agent CLIs it spawns in worktrees: opencode, git, gh, glab.
-# Nothing is installed at runtime; every tool is baked and pinned.
+# Nothing is installed at runtime; every tool is baked at its latest release.
 #
-# Build:   ./build.sh            (or: docker build -t dev-stack:local .)
+# Build:   ./build.sh            (resolves versions, then docker build)
 # Runtime: add `--init` (Orca must not be PID 1).
 FROM debian:13-slim
 
-# Pinned upstream versions. Bump these to upgrade.
-# Bump ORCA_VERSION together with the desktop app: a client and a runtime from
-# different releases are the usual source of "it paired yesterday" reports.
-# https://github.com/stablyai/orca/releases/latest
-ARG GH_VERSION=2.102.0
-ARG GLAB_VERSION=1.120.0
-ARG OPENCODE_VERSION=2.0.30
-ARG ORCA_VERSION=v1.4.247
-ARG RUST_VERSION=1.100.0
-ARG GOLANGCI_LINT_VERSION=2.15.0
-
-# Exposed at runtime so a deployed container can be compared with the client.
-ENV ORCA_VERSION=${ORCA_VERSION}
+# Nothing here is pinned: versions.sh resolves the latest upstream release of
+# each tool and build.sh / CI pass them as build args. Each RUN checks the one
+# arg it consumes (`: "${X:?...}"`), so an opencode bump rebuilds the opencode
+# layer only and a bare `docker build .` fails with a clear message.
+ARG GH_VERSION
+ARG GLAB_VERSION
+ARG OPENCODE_VERSION
+ARG ORCA_VERSION
+ARG RUST_VERSION
+ARG GOLANGCI_LINT_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -79,9 +76,10 @@ RUN set -eux; \
     zsh --version; \
     gdb --version
 
-# Rust via rustup, pinned. Baked into the image (not a volume): a container
+# Rust via rustup, latest stable. Baked into the image (not a volume): a container
 # recreate must keep cargo/rustc/rustfmt/clippy/rust-analyzer on PATH.
 RUN set -eux; \
+    : "${RUST_VERSION:?empty build arg; run ./build.sh, which resolves versions}"; \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
       | sh -s -- -y \
         --default-toolchain "${RUST_VERSION}" \
@@ -91,8 +89,10 @@ RUN set -eux; \
     /root/.cargo/bin/cargo --version
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# GitHub CLI + GitLab CLI from pinned release tarballs.
+# GitHub CLI + GitLab CLI from their release tarballs (version from versions.sh).
 RUN set -eux; \
+    : "${GH_VERSION:?empty build arg; run ./build.sh, which resolves versions}" \
+      "${GLAB_VERSION:?empty build arg; run ./build.sh, which resolves versions}"; \
     curl -fsSL -o /tmp/gh.tar.gz \
       "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz"; \
     tar -xzf /tmp/gh.tar.gz -C /tmp; \
@@ -103,8 +103,9 @@ RUN set -eux; \
     install -m 0755 /tmp/bin/glab /usr/local/bin/glab; \
     rm -rf /tmp/gh.tar.gz /tmp/glab.tar.gz "/tmp/gh_${GH_VERSION}_linux_amd64" /tmp/bin
 
-# golangci-lint from the pinned GitHub release (not packaged in Debian).
+# golangci-lint from its GitHub release (not packaged in Debian).
 RUN set -eux; \
+    : "${GOLANGCI_LINT_VERSION:?empty build arg; run ./build.sh, which resolves versions}"; \
     curl -fsSL -o /tmp/golangci.tar.gz \
       "https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz"; \
     tar -xzf /tmp/golangci.tar.gz -C /tmp; \
@@ -130,11 +131,13 @@ RUN set -eux; \
 # opencode CLI. The official installer lands in /root/.opencode/bin, which is on
 # PATH above and is one of the install dirs Orca scans for agents.
 RUN set -eux; \
+    : "${OPENCODE_VERSION:?empty build arg; run ./build.sh, which resolves versions}"; \
     curl -fsSL https://opencode.ai/v2/install | bash -s -- --version "${OPENCODE_VERSION}"; \
     opencode --version
 
 # Orca runtime: extract the AppImage so no FUSE device is needed in Docker.
 RUN set -eux; \
+    : "${ORCA_VERSION:?empty build arg; run ./build.sh, which resolves versions}"; \
     mkdir -p /opt/orca; \
     curl -fL -o /opt/orca/orca-linux.AppImage \
       "https://github.com/stablyai/orca/releases/download/${ORCA_VERSION}/orca-linux.AppImage"; \
@@ -154,6 +157,12 @@ RUN printf '%s\n' \
 
 COPY entrypoint.sh /usr/local/bin/dev-stack-entrypoint
 RUN chmod 0755 /usr/local/bin/dev-stack-entrypoint
+
+# Exposed at runtime so a deployed container can be compared with its client.
+# Declared last: an ENV changes the config of every later RUN, which would put
+# a version bump back on the cache path of the whole toolchain.
+ENV ORCA_VERSION=${ORCA_VERSION} \
+    OPENCODE_VERSION=${OPENCODE_VERSION}
 
 # orca serve (WebSocket 6768) and the optional headless opencode server (4096).
 EXPOSE 6768 4096
