@@ -40,6 +40,7 @@ docker run -d --name dev-stack --init \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=... \
   -e GITLAB_TOKEN=... \
   -e OPEN_DESIGN_API_KEY=... \
+  -e QWENCLOUD_API_KEY=... \
   -v devstack-orca:/root/.config/orca \
   -v devstack-orca-upper:/root/.config/Orca \
   -v devstack-opencode:/root/.config/opencode \
@@ -92,16 +93,32 @@ starting the runtime:
 sh entrypoint.sh --seed-only
 ```
 
+## QwenCloud Token Plan key (optional)
+
+Set `QWENCLOUD_API_KEY` (key for the Token Plan, <https://www.qwencloud.com/pricing/token-plan>)
+and the entrypoint stores it in opencode's `auth.json` under the provider id
+`qwencloud-token-plan-personal`, keeping any other stored credential and leaving the
+file mode 600. `unraid-stack`'s overlay declares that id: `@ai-sdk/anthropic` on
+`https://token-plan.maas.qwencloudapi.com/apps/anthropic/v1`, reading the key as
+`{env:QWENCLOUD_API_KEY}`. The id, npm, base URL and model list are the vendor-published
+OpenCode configuration for Token Plan Individual; the same docs page uses
+`qwencloud-token-plan` for Team Edition and a bare `qwencloud` for pay-as-you-go, neither
+of which this deployment holds. That host front-ends the ap-southeast-1 region, which is
+the only region the Token Plan sells; a key minted elsewhere answers `invalid_iam_token`.
+The runtime also ships an `alibaba-token-plan` provider for the same plan, but only on
+the OpenAI-compatible endpoint, so the `qwencloud-token-plan-personal` entry is what
+reaches the models the Anthropic Messages leg serves.
+
 ## OpenCode Go and Command Code keys (optional)
 
 `OPENCODE_API_KEY` (OpenCode Zen + Go) and `CMD_API_KEY` (Command Code GOAT) already
 work without the entrypoint: both providers are built into opencode, which reads those
 two variables from the environment. The entrypoint **also** stores them in
-`auth.json` under the `opencode-go` and `commandcode` provider ids, so all four
-subscriptions live in one store and a config override that drops the built-in
+`auth.json` under the `opencode-go` and `commandcode` provider ids, so every
+subscription lives in one store and a config override that drops the built-in
 convention still finds the key. Nothing else changes: a missing variable seeds nothing.
 
-All four subscriptions therefore appear in one place:
+All the subscriptions therefore appear in one place:
 
 ```sh
 docker exec dev-stack sh -c 'jq -r "keys[]" ~/.local/share/opencode/auth.json'

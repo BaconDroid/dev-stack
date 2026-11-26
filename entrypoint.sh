@@ -45,10 +45,17 @@ if [ -n "${AIREITER_API_KEY:-}" ]; then
     seed_provider_key aireiter AIREITER_API_KEY
     seed_provider_key aireiter-anthropic AIREITER_API_KEY
 fi
+# QwenCloud Token Plan (https://www.qwencloud.com/pricing/token-plan), one plan,
+# one key. The provider is declared in the config under the
+# `qwencloud-token-plan-personal` id and reads the same variable; seeding keeps
+# the key beside the others for a config that stops doing so.
+if [ -n "${QWENCLOUD_API_KEY:-}" ]; then
+    seed_provider_key qwencloud-token-plan-personal QWENCLOUD_API_KEY
+fi
 
 # OpenCode Go and Command Code GOAT already authenticate through opencode's
 # built-in provider definitions, which read OPENCODE_API_KEY and CMD_API_KEY from
-# the environment. They are seeded as well so all four subscriptions live in the
+# the environment. They are seeded as well so every subscription lives in the
 # same store, and so a config override that drops the built-in convention still
 # finds the key.
 if [ -n "${OPENCODE_API_KEY:-}" ]; then
