@@ -45,12 +45,14 @@ if [ -n "${AIREITER_API_KEY:-}" ]; then
     seed_provider_key aireiter AIREITER_API_KEY
     seed_provider_key aireiter-anthropic AIREITER_API_KEY
 fi
-# QwenCloud Token Plan (https://www.qwencloud.com/pricing/token-plan), one plan,
-# one key. The provider is declared in the config under the
-# `qwencloud-token-plan-personal` id and reads the same variable; seeding keeps
-# the key beside the others for a config that stops doing so.
-if [ -n "${QWENCLOUD_API_KEY:-}" ]; then
-    seed_provider_key qwencloud-token-plan-personal QWENCLOUD_API_KEY
+# QCode (https://qcode.cc/en/pricing), one key for every model family. The
+# config declares two providers - `qcode` on the Anthropic Messages leg and
+# `qcode-chat` on the OpenAI-compatible one - and both read the same variable,
+# so both are seeded from it; seeding keeps the key beside the others for a
+# config that stops doing so.
+if [ -n "${QCODE_API_KEY:-}" ]; then
+    seed_provider_key qcode QCODE_API_KEY
+    seed_provider_key qcode-chat QCODE_API_KEY
 fi
 
 # OpenCode Go and Command Code GOAT already authenticate through opencode's

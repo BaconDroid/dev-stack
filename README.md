@@ -40,7 +40,7 @@ docker run -d --name dev-stack --init \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=... \
   -e GITLAB_TOKEN=... \
   -e OPEN_DESIGN_API_KEY=... \
-  -e QWENCLOUD_API_KEY=... \
+  -e QCODE_API_KEY=... \
   -v devstack-orca:/root/.config/orca \
   -v devstack-orca-upper:/root/.config/Orca \
   -v devstack-opencode:/root/.config/opencode \
@@ -93,21 +93,23 @@ starting the runtime:
 sh entrypoint.sh --seed-only
 ```
 
-## QwenCloud Token Plan key (optional)
+## QCode key (optional)
 
-Set `QWENCLOUD_API_KEY` (key for the Token Plan, <https://www.qwencloud.com/pricing/token-plan>)
-and the entrypoint stores it in opencode's `auth.json` under the provider id
-`qwencloud-token-plan-personal`, keeping any other stored credential and leaving the
-file mode 600. `unraid-stack`'s overlay declares that id: `@ai-sdk/anthropic` on
-`https://token-plan.maas.qwencloudapi.com/apps/anthropic/v1`, reading the key as
-`{env:QWENCLOUD_API_KEY}`. The id, npm, base URL and model list are the vendor-published
-OpenCode configuration for Token Plan Individual; the same docs page uses
-`qwencloud-token-plan` for Team Edition and a bare `qwencloud` for pay-as-you-go, neither
-of which this deployment holds. That host front-ends the ap-southeast-1 region, which is
-the only region the Token Plan sells; a key minted elsewhere answers `invalid_iam_token`.
-The runtime also ships an `alibaba-token-plan` provider for the same plan, but only on
-the OpenAI-compatible endpoint, so the `qwencloud-token-plan-personal` entry is what
-reaches the models the Anthropic Messages leg serves.
+Set `QCODE_API_KEY` (key for a QCode plan, <https://qcode.cc/en/pricing>) and the
+entrypoint stores it in opencode's `auth.json` under both provider ids, `qcode` and
+`qcode-chat`, keeping any other stored credential and leaving the file mode 600.
+
+`unraid-stack`'s overlay declares both. `qcode` is `@ai-sdk/anthropic` on
+`https://api.qcode.cc/claude/v1` and carries the Claude family; `qcode-chat` is
+`@ai-sdk/openai-compatible` on `https://api.qcode.cc/openai/v1` and carries GPT plus
+GLM, Kimi, DeepSeek and Qwen. QCode bills one shared quota across every family, so the
+single key serves both legs. Both base URLs must keep `/v1`: opencode's Anthropic client
+appends `/messages` and nothing else, so a shortened `/api` answers
+`Not Found: Route /api/messages not found`. The Chinese families are reachable only on
+the OpenAI-compatible leg - Codex's Responses protocol does not serve them - which is
+why `qcode-chat` uses `@ai-sdk/openai-compatible` rather than `@ai-sdk/openai`; the GPT
+ids also answer on the Responses interface if that leg ever regresses. Keys are prefixed
+`cr_` and are minted per account, so the same key reaches every model on the plan.
 
 ## OpenCode Go and Command Code keys (optional)
 
