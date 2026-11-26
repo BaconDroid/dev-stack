@@ -25,8 +25,8 @@ is installed at runtime.
 ## Image
 
 Published to GHCR by GitHub Actions on every push to `main`, every `v*` tag, and
-once a day (04:17 UTC), so a nightly build picks up new upstream releases even
-when nothing changes here:
+once a day at 04:00 EST (09:00 UTC), so a nightly build picks up new upstream
+releases even when nothing changes here:
 
 ```
 ghcr.io/bacondroid/dev-stack:latest
