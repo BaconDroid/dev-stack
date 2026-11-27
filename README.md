@@ -54,6 +54,7 @@ docker run -d --name dev-stack --init \
   -e GITLAB_TOKEN=... \
   -e OPEN_DESIGN_API_KEY=... \
   -e QCODE_API_KEY=... \
+  -e ALIBABA_TOKEN_PLAN_API_KEY=... \
   -v devstack-orca:/root/.config/orca \
   -v devstack-orca-upper:/root/.config/Orca \
   -v devstack-opencode:/root/.config/opencode \
@@ -123,6 +124,41 @@ the OpenAI-compatible leg - Codex's Responses protocol does not serve them - whi
 why `qcode-chat` uses `@ai-sdk/openai-compatible` rather than `@ai-sdk/openai`; the GPT
 ids also answer on the Responses interface if that leg ever regresses. Keys are prefixed
 `cr_` and are minted per account, so the same key reaches every model on the plan.
+
+## Alibaba Token Plan key (optional)
+
+Set `ALIBABA_TOKEN_PLAN_API_KEY` (key for a Model Studio Token Plan,
+<https://www.alibabacloud.com/help/en/model-studio/token-plan-overview>) and the
+entrypoint stores it in opencode's `auth.json` under the `alibaba-token-plan` provider
+id, keeping any other stored credential and leaving the file mode 600.
+
+Nothing needs to be declared in the config: opencode ships that provider itself and
+reads the variable from the environment, so the key alone already enables it - seeding
+just keeps it beside the others for a config that drops the built-in convention. One
+id covers every leg the plan publishes, and the runtime picks the right base URL per
+model: `https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1` for the
+OpenAI-compatible models, `.../apps/anthropic/v1` for the Anthropic Messages ones
+(Claude Code's own doc points at `.../apps/anthropic` without the `/v1`, because that
+client appends nothing; `@ai-sdk/anthropic` does append `/v1/messages`, hence the `/v1`
+here). The international leg carries 20 models on OpenCode 2.4.2 - the Qwen 3.6-4
+family, DeepSeek V4/V4.1, GLM-5 to 5.3, Kimi K2.5-2.7 and MiniMax M2.5.
+
+Keys are prefixed `sk-sp-` (pay-as-you-go keys are bare `sk-`, Coding Plan keys are
+different again) and are region-locked: Singapore, `ap-southeast-1`, is the only region
+the plan sells, and a key minted elsewhere answers `401 invalid_iam_token`. Verified on
+2.4.2 with a scratch `HOME`: an empty store lists no Alibaba models; a store seeded with
+`alibaba-token-plan` alone lists the 20 international ones; and with
+`ALIBABA_TOKEN_PLAN_API_KEY` in the environment, opencode enables both its international
+and its Beijing (`alibaba-token-plan-cn`) ids, so the picker offers 40 and only the first
+20 are callable from Singapore. Nothing in the config suppresses the second pair - an
+explicit `alibaba-token-plan-cn` entry just points it wherever it is told - so treat the
+CN ids as noise. Seeding always writes the international id.
+
+The plan publishes no per-key RPM or concurrency number, only a recommended number of
+concurrent agents - 2-3 on Essential, 3-4 on Standard, 6-8 on Pro - and states that
+rate limits are adjusted dynamically and cannot be raised. The concurrency gate leaves a
+provider out of `provider-gates.json` ungated, so this one currently has no local cap;
+give it an entry before running several agents against it at once.
 
 ## OpenCode Go and Command Code keys (optional)
 

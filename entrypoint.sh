@@ -54,6 +54,16 @@ if [ -n "${QCODE_API_KEY:-}" ]; then
     seed_provider_key qcode QCODE_API_KEY
     seed_provider_key qcode-chat QCODE_API_KEY
 fi
+# Alibaba Cloud Model Studio Token Plan
+# (https://www.alibabacloud.com/help/en/model-studio/token-plan-overview), one
+# key for the whole plan. opencode ships the provider as `alibaba-token-plan`
+# and reads ALIBABA_TOKEN_PLAN_API_KEY itself, so seeding only keeps the key
+# beside the others for a config that drops that convention; the single id
+# covers every leg the plan publishes - OpenAI-compatible, Responses and
+# Anthropic Messages - so one entry authenticates all of them.
+if [ -n "${ALIBABA_TOKEN_PLAN_API_KEY:-}" ]; then
+    seed_provider_key alibaba-token-plan ALIBABA_TOKEN_PLAN_API_KEY
+fi
 
 # OpenCode Go and Command Code GOAT already authenticate through opencode's
 # built-in provider definitions, which read OPENCODE_API_KEY and CMD_API_KEY from
